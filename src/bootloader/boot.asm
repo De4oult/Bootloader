@@ -73,6 +73,7 @@ main:
     mov si, msg_hello
     call puts
 
+    cli
     hlt
 
 .halt:
@@ -155,11 +156,11 @@ disk_read:
 .done:
     popa
 
-    push di
-    push dx
-    push cx
-    push bx
-    push ax
+    pop di
+    pop dx
+    pop cx
+    pop bx
+    pop ax
     ret
 
 disk_reset:
