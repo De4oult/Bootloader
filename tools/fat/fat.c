@@ -2,12 +2,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define true 1
 #define false 0
 
 typedef uint8_t bool;
-
 
 typedef struct {
     uint8_t  BootJumpInstruction[3];
@@ -52,6 +52,7 @@ typedef struct {
 BootSector      global_BootSector;
 uint8_t*        global_Fat = NULL;
 DirectoryEntry* global_RootDirectory = NULL;
+uint32_t        global_RootDirectoryEnd;
 
 bool readBootSector(FILE* disk) {
     return fread(&global_BootSector, sizeof(global_BootSector), 1, disk) > 0;
@@ -75,7 +76,8 @@ bool readRootDirectory(FILE* disk) {
     uint32_t sectors = (size / global_BootSector.BytesPerSector);
     if (size % global_BootSector.BytesPerSector > 0) sectors++;
 
-    global_RootDirectory = (DirectoryEntry*) malloc(sectors * global_BootSector.BytesPerSector);
+    global_RootDirectoryEnd = lba + sectors;
+    global_RootDirectory    = (DirectoryEntry*) malloc(sectors * global_BootSector.BytesPerSector);
     return readSectors(disk, lba, sectors, global_RootDirectory);
 }
 
@@ -85,6 +87,27 @@ DirectoryEntry* findFile(const char* name) {
     }
 
     return NULL;
+}
+
+bool readFile(DirectoryEntry* fileEntry, FILE* disk, uint8_t* outputBuffer) {
+    bool ok = true;
+    uint16_t currentCluster = fileEntry -> FirstClusterLow;
+    
+    do {
+        uint32_t lba = global_RootDirectoryEnd + (currentCluster - 2) * global_BootSector.SectorsPerCluster;
+        
+        ok = ok && readSectors(disk, lba, global_BootSector.SectorsPerCluster, outputBuffer);
+        outputBuffer += global_BootSector.SectorsPerCluster * global_BootSector.BytesPerSector;
+
+        uint32_t fatIndex = currentCluster * 3 / 2;
+        
+        if (currentCluster % 2 == 0) 
+            currentCluster = (*(uint16_t*)(global_Fat + fatIndex)) & 0x0FFF;
+        else 
+            currentCluster = (*(uint16_t*)(global_Fat + fatIndex)) >> 4;
+    } while(ok && currentCluster < 0x0FF8);
+
+    return ok;
 }
 
 int main(int argc, char** argv) {
@@ -125,6 +148,22 @@ int main(int argc, char** argv) {
         return -5;
     }
 
+    uint8_t* buffer = (uint8_t*) malloc(fileEntry -> Size + global_BootSector.BytesPerSector);
+    if (!readFile(fileEntry, disk, buffer)) {
+        fprintf(stderr, "Could not read file %s!\n", argv[2]);
+        free(buffer);
+        free(global_Fat);
+        free(global_RootDirectory);
+        return -5;
+    }
+
+    for(size_t i = 0; i < fileEntry -> Size; i++) {
+        if (isprint(buffer[i])) fputc(buffer[i], stdout);
+        else printf("<%02x>", buffer[i]);
+    }
+    printf("\n");
+
+    free(buffer);
     free(global_Fat);
     free(global_RootDirectory);
     
