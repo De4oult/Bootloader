@@ -5,6 +5,7 @@
 * make
 * qemu
 * bochs
+* open-watcom 2
 
 ## Author
 ```
