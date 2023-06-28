@@ -94,7 +94,7 @@ start:
     mov di, buffer
 
 .search_kernel:
-    mov si, file_kernel_bin
+    mov si, file_stage2_bin
     mov cx, 11
     push di
     repe cmpsb
@@ -111,7 +111,7 @@ start:
 
 .found_kernel:
     mov ax, [di + 26]
-    mov [kernel_cluster], ax
+    mov [stage2_cluster], ax
 
     ; load FAT from disk into memory
     mov ax, [bdb_reserved_sectors]
@@ -127,7 +127,7 @@ start:
 
 .load_kernel_loop:
     ; Read next cluster
-    mov ax, [kernel_cluster]
+    mov ax, [stage2_cluster]
     
     add ax, 31
 
@@ -138,7 +138,7 @@ start:
     add bx, [bdb_bytes_per_sector]
 
     ; compute location of next cluster
-    mov ax, [kernel_cluster]
+    mov ax, [stage2_cluster]
     mov cx, 3
     mul cx
     mov cx, 2
@@ -162,7 +162,7 @@ start:
     cmp ax, 0x0FF8
     jae .read_finish
 
-    mov [kernel_cluster], ax
+    mov [stage2_cluster], ax
     jmp .load_kernel_loop
 
 .read_finish:
@@ -188,7 +188,7 @@ floppy_error:
     jmp wait_key_and_reboot
 
 kernel_not_found_error:
-    mov si, msg_kernel_not_found
+    mov si, msg_stage2_not_found
     call puts
     jmp wait_key_and_reboot
 
@@ -302,9 +302,9 @@ disk_reset:
 
 msg_loading:          db 'Loading...', ENDL, 0
 msg_read_failed:      db 'Read from disk failed!', ENDL, 0
-msg_kernel_not_found: db 'STAGE2.BIN file not found!', ENDL, 0
-file_kernel_bin:      db 'STAGE2  BIN'
-kernel_cluster:       dw 0
+msg_stage2_not_found: db 'STAGE2.BIN file not found!', ENDL, 0
+file_stage2_bin:      db 'STAGE2  BIN'
+stage2_cluster:       dw 0
 
 KERNEL_LOAD_SEGMENT equ 0x2000
 KERNEL_LOAD_OFFSET  equ 0
