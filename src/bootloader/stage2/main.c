@@ -2,6 +2,6 @@
 #include "stdio.h"
 
 void _cdecl cstart_(uint16_t bootDrive) {
-    puts("Hallo, welt, aus C!");
+    puts("Hallo, welt, aus C!\n");
     for(;;);
 }
