@@ -45,8 +45,8 @@ typedef struct {
     uint16_t ModifiedTime;
     uint16_t ModifiedDate;
     uint16_t FirstClusterHigh;
-    uint32_t Size;
     uint16_t FirstClusterLow;
+    uint32_t Size;
 } __attribute__((packed)) DirectoryEntry;
 
 BootSector      global_BootSector;
